@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Kalman;
 using KalmanFilter.src;
+using System.IO;
 
 namespace KalmanFilter
 {
@@ -16,7 +17,23 @@ namespace KalmanFilter
         {
             string pathPrefix = "D:\\project\\kinect\\3d-pose-filtering\\data\\";
             string readFile = "csv_joined_raw.csv";
-            string writeFile = "csv_joined_kf_c#.csv";
+            string writeFile = "csv_joined_kf.csv";
+            string consoleOutput = "Redirect.txt";
+
+            FileStream ostream = null;
+            StreamWriter oWriter = null;
+            try
+            {
+                ostream = new FileStream(pathPrefix + consoleOutput, FileMode.OpenOrCreate, FileAccess.Write);
+                oWriter = new StreamWriter(ostream);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Cannot open Redirect.txt for writing");
+                Console.WriteLine(e.Message);
+            }
+
+            Console.SetOut(oWriter);
 
             CSV csv = new CSV();
             //read csv file
@@ -25,11 +42,17 @@ namespace KalmanFilter
 
             //kalman filter
             List<StandardKalmanFilter> filterList = new List<StandardKalmanFilter>();
+            //fixed-lag smooth 
+            int delayFrameNumber = 8;
+            //List<FixedLagSmoother> filterList = new List<FixedLagSmoother>();
             var jointsNumber = (content[0].GetLength(0) - 1) / 3;
-            for (int i=0; i < jointsNumber; i++)
+            for (int i = 0; i < jointsNumber; i++)
             {
                 StandardKalmanFilter stdKF = new StandardKalmanFilter();
                 filterList.Add(stdKF);
+
+                //FixedLagSmoother fls = new FixedLagSmoother(8);
+                //filterList.Add(fls);
             }
 
             var jointTableOffset = 1;
@@ -82,15 +105,38 @@ namespace KalmanFilter
                     filterList[i].predict();
                     filterList[i].update(coordinates[i]);
 
-                    content[row][jointTableOffset + i * 3]      = filterList[i].State[0, 0].ToString();
-                    content[row][jointTableOffset + i * 3 + 1]  = filterList[i].State[2, 0].ToString();
-                    content[row][jointTableOffset + i * 3 + 2]  = filterList[i].State[4, 0].ToString();
+                    content[row][jointTableOffset + i * 3] = filterList[i].State[0, 0].ToString();
+                    content[row][jointTableOffset + i * 3 + 1] = filterList[i].State[2, 0].ToString();
+                    content[row][jointTableOffset + i * 3 + 2] = filterList[i].State[4, 0].ToString();
+                    if (row > (delayFrameNumber + jointTableOffset))
+                    {
+                        //content[row - delayFrameNumber - jointTableOffset][jointTableOffset + i * 3] = filterList[i].stateSmooth[row - delayFrameNumber - jointTableOffset - 1][0, 0].ToString();
+                        //content[row - delayFrameNumber - jointTableOffset][jointTableOffset + i * 3 + 1] = filterList[i].stateSmooth[row - delayFrameNumber - jointTableOffset - 1][2, 0].ToString();
+                        //content[row - delayFrameNumber - jointTableOffset][jointTableOffset + i * 3 + 2] = filterList[i].stateSmooth[row - delayFrameNumber - jointTableOffset - 1][4, 0].ToString();
+                    }
                 }
-            }
+            }//end of row
+
+            //for (var row = 0; row < content.GetLength(0); row++)
+            //{
+            //    if (row == 0)
+            //        continue;
+
+            //    for (var i = 0; i < jointsNumber; i++)
+            //    {
+            //        content[row][jointTableOffset + i * 3] = filterList[i].stateSmooth[row - 1][0, 0].ToString();
+            //        content[row][jointTableOffset + i * 3 + 1] = filterList[i].stateSmooth[row - 1][2, 0].ToString();
+            //        content[row][jointTableOffset + i * 3 + 2] = filterList[i].stateSmooth[row - 1][4, 0].ToString();
+            //    }
+            //}
 
             //write csv file
             csv.writeCSVFile(pathPrefix + writeFile, content);
             Console.WriteLine("write csv finish!");
+
+            Console.SetOut(Console.Out);
+            oWriter.Close();
+            ostream.Close();
         }
     }
 }

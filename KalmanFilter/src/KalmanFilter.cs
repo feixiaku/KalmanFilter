@@ -64,7 +64,9 @@ namespace KalmanFilter.src
             var K = Pk * H.Transpose() * tmp;
             var residual = z - (H * Xk);
             State = Xk + (K * residual);
-            Coveriance = (Matrix.IdentityMatrix(Pk.rows) - K * H) * Pk;
+
+            var I_KH = Matrix.IdentityMatrix(Pk.rows) - K * H;
+            Coveriance = I_KH * Pk * I_KH.Transpose() + (K * R * K.Transpose());
         }
 
         public void defaultStdKF(StandardKalmanFilter stdKF)
@@ -81,9 +83,11 @@ namespace KalmanFilter.src
             stdKF.F[0, 0] = 1.0;
             stdKF.F[0, 1] = 1.0;
             stdKF.F[1, 1] = 1.0;
+
             stdKF.F[2, 2] = 1.0;
             stdKF.F[2, 3] = 1.0;
             stdKF.F[3, 3] = 1.0;
+
             stdKF.F[4, 4] = 1.0;
             stdKF.F[4, 5] = 1.0;
             stdKF.F[5, 5] = 1.0;
@@ -96,7 +100,8 @@ namespace KalmanFilter.src
             stdKF.Coveriance = Matrix.IdentityMatrix(6);
 
             stdKF.Q = Matrix.ZeroMatrix(6, 6);
-            //block 1
+
+            //for blender
             stdKF.Q[0, 0] = 0.000025;
             stdKF.Q[0, 1] = 0.0005;
             stdKF.Q[1, 0] = 0.0005;
@@ -111,6 +116,23 @@ namespace KalmanFilter.src
             stdKF.Q[4, 5] = 0.0005;
             stdKF.Q[5, 4] = 0.0005;
             stdKF.Q[5, 5] = 0.01;
+
+            //for kinect
+            ////block 1
+            //stdKF.Q[0, 0] = 0.0000000005;
+            //stdKF.Q[0, 1] = 0.0000001;
+            //stdKF.Q[1, 0] = 0.0000001;
+            //stdKF.Q[1, 1] = 0.00002;
+            ////block 2
+            //stdKF.Q[2, 2] = 0.0000000005;
+            //stdKF.Q[2, 3] = 0.0000001;
+            //stdKF.Q[3, 2] = 0.0000001;
+            //stdKF.Q[3, 3] = 0.00002;
+            ////block 3
+            //stdKF.Q[4, 4] = 0.0000000005;
+            //stdKF.Q[4, 5] = 0.0000001;
+            //stdKF.Q[5, 4] = 0.0000001;
+            //stdKF.Q[5, 5] = 0.00002;
 
             stdKF.R = Matrix.IdentityMatrix(3);
         }
